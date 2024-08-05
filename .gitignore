@@ -1,0 +1,6 @@
+# Ignore airflow logs
+airflow/logs/
+
+# Ignore clickhouse data and metadata
+clickhouse/data/
+clickhouse/metadata/
