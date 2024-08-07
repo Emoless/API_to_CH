@@ -1,14 +1,60 @@
-version: '3'
+version: '3.8'
 
 services:
-
   data_module_airflow:
-    image: apache/airflow:2.9.3
-
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
     volumes:
-      - ./airflow:/opt/airflow
-
+      - ./airflow:/opt/airflow:rw
     ports:
       - "8080:8080"
-
     command: airflow standalone
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    depends_on:
+      - postgres
+      - clickhouse
+      - minio
+
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data:rw
+
+  clickhouse:
+    image: yandex/clickhouse-server:latest
+    ports:
+      - "8123:8123"
+      - "9001:9000"
+    volumes:
+      - ./clickhouse:/var/lib/clickhouse
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9002:9000"
+      - "9003:9001"
+    volumes:
+      - ./minio:/data:rw
+
+volumes:
+  airflow:
+  postgres-data:
+  clickhouse:
+  minio:
